@@ -1,0 +1,24 @@
+extends base.pug
+block content
+  h3 #{action} Hotel
+  form(method="POST")
+    .form-group
+      label(for="name") Name
+      input.form-control(type="text", name="name", id="name", value=hotel.name)
+    .form-group
+      label(for="address") Address
+      input.form-control(type="text", name="address", id="address", value=hotel.address)
+    .form-group
+      label(for="city") City
+      input.form-control(type="text", name="city", id="city", value=hotel.city)
+    .form-group
+      label(for="zip") Zip
+      input.form-control(type="text", name="zip", id="zip", value=hotel.zip)
+    .form-group
+      label(for="state") State
+      input.form-control(type="text", name="state", id="state", value=hotel.state)
+    .form-group
+      label(for="rooms") Number of Rooms
+      input.form-control(type="text", name="rooms", id="rooms", value=hotel.rooms)   
+    .form-group
+    button.btn.btn-success(type="submit") Save

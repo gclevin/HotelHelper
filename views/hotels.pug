@@ -1,0 +1,21 @@
+extends base.pug
+block content
+  h3 Hotels
+
+  a(href="/hotels/add", class='btn btn-success btn-sm')
+    i.glyphicon.glyphicon-plus
+    span  Add Hotel
+
+  each hotel in hotels
+    .media
+      a(href=`/hotels/${hotel.id}`)
+        .media-body
+          h4= hotel.name
+
+  if !hotels.length
+    p No hotels found.
+
+  if nextPageToken
+    nav
+      ul.pager
+        li
