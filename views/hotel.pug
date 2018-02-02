@@ -14,9 +14,9 @@ block content
       p= hotel.description
 
   .btn-group
-    a(href=`/hotels/${hotel.id}/edit`, class='btn btn-primary btn-sm')
-      i.glyphicon.glyphicon-edit
-      span  Edit book
+    a(href=`/hotels/${hotel.id}/makeReservation`, class='btn btn-primary btn-sm')
+      i.glyphicon.glyphicon-pencil
+      span  Make Reservation
     a(href=`/hotels/${hotel.id}/delete`, class='btn btn-danger btn-sm')
       i.glyphicon.glyphicon-trash
       span  Delete book

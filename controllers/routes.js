@@ -19,6 +19,10 @@ function getRoomModel () {
 	return require('./../models/roomModel.js');
 }
 
+function getReservationModel () {
+	return require('./../models/reservationModel.js');
+}
+
 router.get('/', (req, res, next) => {
   getHotelModel().list(10, req.query.pageToken, (err, entities, cursor) => {
     if (err) {
@@ -79,7 +83,6 @@ router.get('/:hotel', (req, res, next) => {
   });
 });
 
-//Still in production
 router.get('/:hotel/makeReservation', (req, res, next) => {
   getHotelModel().read(req.params.hotel, (err, entity) => {
     if (err) {
@@ -94,24 +97,24 @@ router.get('/:hotel/makeReservation', (req, res, next) => {
   });
 });
 
-//Still in production
 router.post('/:hotel/makeReservation', (req, res, next) => {
-	console.log(req.params.hotel)
-	let data = req.body
-	let hotel = { hotel : req.params.hotel }
-	console.log(Array.from(data))
+
+  let reservation = {
+    first: req.body.first,
+  	last: req.body.last,
+  	start: req.body.start,
+  	end: req.body.end, 
+  	hotel: req.params.hotel,
+  };
 	
-  // getHotelModel().read(req.params.hotel, (err, entity) => {
-  //   if (err) {
-  //     next(err);
-  //     return;
-  //   }
-  //   console.log(entity.name)
-  //   res.render('makeReservation.pug', {
-  //   	reservation: {},
-  //   	hotel: entity.name
-  // 	});
-  // });
+  getReservationModel().create(reservation, (err, entity) => {
+    if (err) {
+      next(err);
+      return;
+    }
+    res.redirect(`${req.baseUrl}/${entity.hotel}`);
+
+  });
 });
 
 module.exports = router
