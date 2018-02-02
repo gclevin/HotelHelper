@@ -4,21 +4,21 @@ block content
   form(method="POST")
     .form-group
       label(for="name") Name
-      input.form-control(type="text", name="name", id="name", value=hotel.name)
+      input.form-control(type="text", name="name", id="name", value=hotel.name, required)
     .form-group
       label(for="address") Address
-      input.form-control(type="text", name="address", id="address", value=hotel.address)
+      input.form-control(type="text", name="address", id="address", value=hotel.address, required)
     .form-group
       label(for="city") City
-      input.form-control(type="text", name="city", id="city", value=hotel.city)
+      input.form-control(type="text", name="city", id="city", value=hotel.city, required)
     .form-group
       label(for="zip") Zip
-      input.form-control(type="text", name="zip", id="zip", value=hotel.zip)
+      input.form-control(type="number", name="zip", id="zip", value=hotel.zip, required)
     .form-group
       label(for="state") State
-      input.form-control(type="text", name="state", id="state", value=hotel.state)
+      input.form-control(type="text", name="state", id="state", value=hotel.state, required)
     .form-group
       label(for="rooms") Number of Rooms
-      input.form-control(type="text", name="rooms", id="rooms", value=hotel.rooms)   
+      input.form-control(type="number", name="rooms", id="rooms", value=hotel.rooms, required)   
     .form-group
     button.btn.btn-success(type="submit") Save

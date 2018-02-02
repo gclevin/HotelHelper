@@ -1,0 +1,24 @@
+extends base.pug
+block content
+  h3 Make Reservation for #{hotel}
+  form(method="POST")
+    .form-group
+      label(for="first") First Name
+      input.form-control(type="text", name="first", id="first", value=reservation.first, required)
+    .form-group
+      label(for="last") Last Name
+      input.form-control(type="text", name="last", id="last", value=reservation.last, required)
+    .form-group
+      label(for="phone") Phone Number
+      input.form-control(type="text", name="phone", id="phone", placeholder="123-456-7890", value=reservation.pnone, required)
+    .form-group
+      label(for="start") Start Date
+      input.form-control(type="date", name="zip", id="zip", value=reservation.start, required)
+    .form-group
+      label(for="end") End Date
+      input.form-control(type="date", name="end", id="end", value=reservation.end, required) 
+    .form-group
+      label(for="end") End Date
+      input.form-control(type="date", value=`${hotel.id}` name="end", id="end", value=reservation.end, required)
+    .form-group
+    button.btn.btn-success(type="submit") Save

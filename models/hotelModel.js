@@ -59,7 +59,6 @@ function update (id, data, cb) {
 }
 
 function create (data, cb) {
-  console.log(data);
   update(null, data, cb);
 }
 
@@ -80,7 +79,6 @@ function list (limit, token, cb) {
 }
 
 function read (id, cb) {
-  console.log("ID: " + id);
   const key = ds.key([kind, parseInt(id, 10)]);
   ds.get(key, (err, entity) => {
     if (!err && !entity) {
