@@ -62,17 +62,18 @@ function create (data, cb) {
   update(null, data, cb);
 }
 
-function list (limit, token, cb) {
+function list (filters, cb) {
   const q = ds.createQuery([kind])
-    .limit(limit)
-    .order('name')
-    .start(token);
+    .filter('first', '=', filters[0])
+    .filter('last', '=', filters[1])
+    .filter('hotel', '=', filters[2])
 
   ds.runQuery(q, (err, entities, nextQuery) => {
     if (err) {
       cb(err);
       return;
     }
+
     const hasMore = nextQuery.moreResults !== Datastore.NO_MORE_RESULTS ? nextQuery.endCursor : false;
     cb(null, entities.map(fromDatastore), hasMore);
   });
@@ -95,10 +96,15 @@ function read (id, cb) {
   });
 }
 
+function _delete(id, callback) {
+   const cardKey = ds.key([kind, parseInt(id, 10)]);
+   ds.delete(cardKey, callback);
+}
+
 module.exports = {
   create,
   read,
   update,
-  //delete: _delete,
+  delete: _delete,
   list
 };

@@ -1,0 +1,15 @@
+extends base.pug
+block content
+  h3 Reservations for #{first} #{last}
+
+  ul
+    each reservation in reservations
+      .media
+        .media-body
+          li= reservation.start + " " + reservation.end + " "
+            a(href=`/hotels/${reservation.hotel}/manageReservations/${reservation.id}/delete`, class='btn btn-danger btn-sm')
+              i.glyphicon.glyphicon-trash
+                span  Cancel
+
+  if !reservations.length
+    p No reservations found.

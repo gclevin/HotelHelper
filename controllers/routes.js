@@ -3,10 +3,6 @@ const router = express.Router()
 const path = require('path');
 const bodyParser = require('body-parser');
 
-let a = "HI";
-
-// router.set('views', path.join(__dirname, './views'));
-// router.set('view engine', 'pug');
 router.use(express.static(path.join(__dirname, './public')));
 router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: true })); 
@@ -29,6 +25,7 @@ router.get('/', (req, res, next) => {
       next(err);
       return;
     }
+    console.log(entities)
     res.render('hotels.pug', {
       hotels: entities,
       nextPageToken: cursor
@@ -116,5 +113,46 @@ router.post('/:hotel/makeReservation', (req, res, next) => {
 
   });
 });
+
+router.get('/:hotel/manageReservations', (req, res, next) => {
+	getHotelModel().read(req.params.hotel, (err, entity) => {
+      if (err) {
+        next(err);
+        return;
+      }
+      res.render('manageReservations.pug', {
+        reservation: {},
+        hotel: entity.name
+  	  });
+  });
+});
+
+router.post('/:hotel/manageReservations', (req, res, next) => {
+  let filters = [req.body.first, req.body.last, req.params.hotel];
+  getReservationModel().list(filters, (err, entities, cursor) => {
+    if (err) {
+      next(err);
+      return;
+    }
+
+    res.render('reservations.pug', {
+      first: req.body.first,
+      last: req.body.last,
+      reservations: entities,
+      nextPageToken: cursor
+    });
+  });
+});
+
+router.get('/:hotel/manageReservations/:reservation/delete', (req, res, next) => {
+	getReservationModel().delete(req.params.reservation, (err, entity) => {
+      if (err) {
+        next(err);
+        return;
+      }
+      res.redirect(`${req.baseUrl}/${req.params.hotel}`)
+  });
+});
+
 
 module.exports = router
