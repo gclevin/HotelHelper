@@ -57,11 +57,10 @@ function create (data, cb) {
   update(null, data, cb);
 }
 
-function list (limit, token, cb) {
+function list (filter, cb) {
   const q = ds.createQuery([kind])
-    .limit(limit)
-    .order('number')
-    .start(token);
+    .filter('hotel', '=', filter)
+  
 
   ds.runQuery(q, (err, entities, nextQuery) => {
     if (err) {
