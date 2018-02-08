@@ -4,15 +4,23 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "devstart": "nodemon app.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@google-cloud/datastore": "1.1.0",
+    "bcryptjs": "^2.4.3",
     "body-parser": "^1.18.2",
     "bootstrap": "^4.0.0",
+    "cookie-parser": "^1.4.3",
     "express": "^4.16.2",
+    "express-session": "^1.15.6",
     "pug": "^2.0.0-rc.4"
+  },
+  "devDependencies": {
+    "@google-cloud/nodejs-repo-tools": "^2.1.4",
+    "nodemon": "^1.14.12"
   }
 }

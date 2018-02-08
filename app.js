@@ -13,6 +13,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use('/hotels', require('./controllers/routes'));
 
+//Delete
 function getModel () {
   return require('./model-datastore.js');
 }

@@ -1,0 +1,15 @@
+extends base.pug
+block content
+  h3 Log In
+  form(method="POST")
+    .form-group
+      label(for="email") Email
+      input.form-control(type="email", name="email", id="email", value=user.email, required)
+    .form-group
+      label(for="state") Password
+      input.form-control(type="password", name="password", id="password", value=user.password, required)  
+    .form-group
+    button.btn.btn-success(type="submit") Sign In
+
+  a(href=`/hotels/signUp`, class='btn btn-success btn-sm') CreateAccount
+  p(class='text-danger' style="font-size:160%;") #{message}

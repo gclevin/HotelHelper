@@ -1,6 +1,6 @@
 extends base.pug
 block content
-  h3 Hotels
+  h1 Hotels
 
   a(href="/hotels/add", class='btn btn-success btn-sm')
     i.glyphicon.glyphicon-plus
@@ -13,7 +13,7 @@ block content
           h4= hotel.name
 
   if !hotels.length
-    p No hotels found.
+    h2 No hotels found.
 
   if nextPageToken
     nav

@@ -1,0 +1,16 @@
+extends base.pug
+block content
+  h1 Find Hotels
+  h3 Welcome, #{name}
+  form(method="POST")
+    .form-group
+      label(for="city") City
+      input.form-control(type="city", name="city", id="city", value=reservation.city, required)
+    .form-group
+      label(for="start") Start Date
+      input.form-control(type="date", name="start", id="start", value=reservation.start, required)
+    .form-group
+      label(for="end") End Date
+      input.form-control(type="date", name="end", id="end", value=reservation.end, required) 
+    .form-group
+    button.btn.btn-success(type="submit") Search

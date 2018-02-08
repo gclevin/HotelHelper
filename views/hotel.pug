@@ -1,21 +1,17 @@
 extends base.pug
 
 block content
-  h2 #{hotel.name}
-    small
-
-
+  h1 #{hotel.name}
+  
   .media
     .media-body
       h3= hotel.address
       h4 #{hotel.city}, #{hotel.state} #{hotel.zip}
-
-      h5 Rooms:  #{hotel.rooms||'unknown'}
-      p= hotel.description
+      h5 Rooms:  #{hotel.rooms}
 
   .btn-group
     a(href=`/hotels/${hotel.id}/makeReservation`, class='btn btn-primary btn-sm')
-      i.glyphicon.glyphicon-pencil
+      i.glyphicon.glyphicon-plus
       span  Make Reservation
     a(href=`/hotels/${hotel.id}/manageReservations`, class='btn btn-success btn-sm')
       i.glyphicon.glyphicon-search

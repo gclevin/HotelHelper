@@ -1,0 +1,20 @@
+extends base.pug
+block content
+  h3 Create Account
+  form(method="POST")
+    .form-group
+      label(for="first") First Name
+      input.form-control(type="text", name="first", id="first", value=user.first, required)
+    .form-group
+      label(for="last") Last Name
+      input.form-control(type="text", name="last", id="last", value=user.last, required)
+    .form-group
+      label(for="email") Email
+      input.form-control(type="email", name="email", id="email", value=user.email, required)
+    .form-group
+      label(for="state") Password
+      input.form-control(type="password", name="password", id="password", value=user.password, required)  
+    .form-group
+    button.btn.btn-success(type="submit") Create Account
+
+  p(class='text-danger' style="font-size:160%;") #{message}

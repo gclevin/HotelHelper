@@ -6,10 +6,10 @@ block content
     each reservation in reservations
       .media
         .media-body
-          li= reservation.start + " " + reservation.end + " "
+          li= reservation.start + " " + reservation.end + " Room: " + reservation.room
             a(href=`/hotels/${reservation.hotel}/manageReservations/${reservation.id}/delete`, class='btn btn-danger btn-sm')
               i.glyphicon.glyphicon-trash
                 span  Cancel
 
   if !reservations.length
-    p No reservations found.
+    h2 None found.
