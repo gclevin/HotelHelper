@@ -78,6 +78,21 @@ function list (limit, token, cb) {
   });
 }
 
+function listByCity (city, cb) {
+  const q = ds.createQuery([kind])
+    .filter('city', '=', city)
+  
+
+  ds.runQuery(q, (err, entities, nextQuery) => {
+    if (err) {
+      cb(err);
+      return;
+    }
+    const hasMore = nextQuery.moreResults !== Datastore.NO_MORE_RESULTS ? nextQuery.endCursor : false;
+    cb(null, entities.map(fromDatastore), hasMore);
+  });
+}
+
 function read (id, cb) {
   const key = ds.key([kind, parseInt(id, 10)]);
   ds.get(key, (err, entity) => {
@@ -100,5 +115,6 @@ module.exports = {
   read,
   update,
   //delete: _delete,
-  list
+  list,
+  listByCity
 };

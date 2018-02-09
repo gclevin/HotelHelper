@@ -1,0 +1,25 @@
+extends base.pug
+block content
+  h1 Available Hotels from #{start} to #{end}
+
+  each hotel in hotels
+        .media-body
+          h2= hotel.name
+          h4= hotel.address
+          h4= hotel.city + ", " + hotel.state + " " + hotel.zip
+          form(action='makeReservation' method="POST")
+            .form-group
+              label(for="hotel")
+              input.form-control(type="text", name="hotel", id="hotel", value=hotel.id, required)
+            .form-group 
+              label(for="hotel")
+              input.form-control(type="text", name="hotel", id="hotel", value=start, required)
+            .form-group
+              label(for="hotel")
+              input.form-control(type="text", name="hotel", id="hotel", value=end, required)
+            .form-group
+            button.btn.btn-primary(type="submit") Book
+
+  if !hotels.length
+    h2 No available hotels on those dates.
+

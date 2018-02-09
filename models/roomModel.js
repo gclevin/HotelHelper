@@ -59,6 +59,21 @@ function create (data, cb) {
 
 function list (filter, cb) {
   const q = ds.createQuery([kind])
+    .filter('city', '=', filter)
+  
+
+  ds.runQuery(q, (err, entities, nextQuery) => {
+    if (err) {
+      cb(err);
+      return;
+    }
+    const hasMore = nextQuery.moreResults !== Datastore.NO_MORE_RESULTS ? nextQuery.endCursor : false;
+    cb(null, entities.map(fromDatastore), hasMore);
+  });
+}
+
+function listByHotel (filter, cb) {
+  const q = ds.createQuery([kind])
     .filter('hotel', '=', filter)
   
 
@@ -94,5 +109,6 @@ module.exports = {
   read,
   update,
   //delete: _delete,
-  list
+  list,
+  listByHotel
 };

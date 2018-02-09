@@ -92,15 +92,6 @@ router.post('/signIn', (req, res) => {
   });
 });
 
-router.get('/hotelSearch', sessionChecker, (req, res) => {
-    res.render('hotelSearch.pug', {
-      reservation: {},
-      name: req.session.name,
-    });
-});
-
-
-
 router.get('/signUp', (req, res) => {
   res.render('signUp.pug', {
     user: {},
@@ -139,14 +130,203 @@ router.post('/signUp', (req, res) => {
       });
     }
   });
+});
+
+router.get('/hotelSearch', sessionChecker, (req, res) => {
+    res.render('hotelSearch.pug', {
+      reservation: {},
+      name: req.session.name,
+    });
+});
+
+router.post('/hotelSearch', sessionChecker, (req, res) => {
+
+  let availableHotelIds = new Set();
+
+  getRoomModel().list(req.body.city, (err, entities, cursor) => {
+    if (err) {
+      next(err);
+      return;
+    }
 
 
-  
+    for (let i = 0; i < entities.length; i++) {
+      let currentRoom = entities[i];
+      let datesBooked = currentRoom.datesBooked;
 
+      if (!(availableHotelIds.has(currentRoom.hotel))) {
+        if (datesBooked.length == 0) {
+          availableHotelIds.add(currentRoom.hotel);
+        } else {
+          datesBooked.push(req.body.start + "," + req.body.end)
+          datesBooked.sort(function(a, b) {
+            a = new Date(a.split(",", 1));
+            b = new Date(b.split(",", 1));
+            if (a <= b) return -1;
+            if (a >= b) return 1;
+          });
+
+          let overlap = false;
+          for (let j = 1; j < datesBooked.length; j++) {
+            let dateOne = new Date (datesBooked[j - 1].split(",").pop());
+            let dateTwo = new Date (datesBooked[j].split(",", 1));
+            if (dateOne >= dateTwo) {
+              overlap = true;
+            }
+          }
+
+          if (overlap === false) {
+            availableHotelIds.add(currentRoom.hotel);
+            break;
+          }
+        }
+      }
+    } 
+
+    getHotelModel().listByCity(req.body.city, (err, hotelEntities, cursor) => {
+      if (err) {
+        next(err);
+        return;
+      }
+
+      let availableHotels = [];
+      for (let k = 0; k < hotelEntities.length; k++) {
+        if (availableHotelIds.has(hotelEntities[k].id)) {
+          availableHotels.push(hotelEntities[k]);
+        }
+      }
+
+      res.render('hotelResults.pug', {
+        hotels: availableHotels,
+        start: req.body.start,
+        end: req.body.end
+      });  
+    });  
+  });  
+});
+
+router.get('/makeReservation', sessionChecker, (req, res) => {
+  res.redirect('/hotelSearch');
+});
+
+//BROKEN
+router.post('/makeReservation', sessionChecker, (req, res) => {
+  console.log(req.body.hotel);
+
+  getRoomModel().listByHotel(req.body.hotel, (err, entities, cursor) => {
+    if (err) {
+      next(err);
+      return;
+    }
+
+
+    console.log("HOLA"); 
+    for (let i = 0; i < entities.length; i++) {
+      let currentRoom = entities[i];
+      let datesBooked = currentRoom.datesBooked;
+
+      if (datesBooked.length == 0) {
+        
+          let reservation = {
+            user: req.session.user,
+            start: req.body.start,
+            end: req.body.end, 
+            hotel: req.params.hotel,
+            room: currentRoom.number
+          };
+    
+          getReservationModel().create(reservation, (err, entity) => {
+            if (err) {
+              next(err);
+              return;
+            }
+          });
+
+
+          datesBooked.push(req.body.start + "," + req.body.end);
+          let roomUpdate = {
+            number: currentRoom.number,
+            datesBooked: datesBooked,
+            hotelName: currentRoom.hotelName,
+            hotel: currentRoom.hotel,
+          };
+
+          getRoomModel().update(currentRoom.id, roomUpdate, function (err, savedData) {
+            if (err) {
+              next(err);
+              return;
+            }
+          });
+          break;
+      } else {
+      
+      //Add proposed date to array of dates booked, then sort
+        datesBooked.push(req.body.start + "," + req.body.end)
+        datesBooked.sort(function(a, b) {
+          a = new Date(a.split(",", 1));
+          b = new Date(b.split(",", 1));
+          if (a <= b) return -1;
+          if (a >= b) return 1;
+        });
+
+
+        //Check if there is overlap
+        let overlap = false;
+        for (let j = 1; j < datesBooked.length; j++) {
+          let dateOne = new Date (datesBooked[j - 1].split(",").pop());
+          let dateTwo = new Date (datesBooked[j].split(",", 1));
+          if (dateOne >= dateTwo) {
+            overlap = true;
+          }
+        }
+
+        //if no overlap exist, book reservation
+        if (overlap === false){
+
+          let reservation = {
+            first: req.body.first,
+            last: req.body.last,
+            start: req.body.start,
+            end: req.body.end, 
+            hotel: req.params.hotel,
+            room: currentRoom.number
+          };
+    
+          getReservationModel().create(reservation, (err, entity) => {
+            if (err) {
+              next(err);
+              return;
+            }
+          });
+
+
+          datesBooked.push(req.body.start + "," + req.body.end);
+          let roomUpdate = {
+            number: currentRoom.number,
+            datesBooked: datesBooked,
+            hotelName: currentRoom.hotelName,
+            hotel: currentRoom.hotel,
+          };
+
+          getRoomModel().update(currentRoom.id, roomUpdate, function (err, savedData) {
+            if (err) {
+              next(err);
+              return;
+            }
+          });
+          responseMessage = "Room succesfully booked!"
+          break;
+        } 
+      }
+    }
+    
+    res.send("YO");
+  });
 });
 
 //OLD
 router.get('/', (req, res, next) => {
+  console.log(req.body.hotel);
   getHotelModel().list(10, req.query.pageToken, (err, entities, cursor) => {
     if (err) {
       next(err);
@@ -183,6 +363,7 @@ router.post('/add', function (req, res, next) {
   	    datesBooked: arr,
   	    hotelName: req.body.name,
   	    hotel: savedData.id,
+        city: req.body.city
   	  }
 
   	  getRoomModel().create(entity, function (err, savedData) {
