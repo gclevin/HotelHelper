@@ -85,7 +85,7 @@ router.post('/signIn', logInChecker, (req, res) => {
         if (response === true) {
           req.session.user = entities[0].id;
           req.session.name = entities[0].first;
-          res.redirect('/hotelSearch')
+          res.redirect('/hotelSearch');
         } else {
           console.log("Incorrect Password");
           res.render('signIn.pug', {
@@ -133,6 +133,10 @@ router.post('/signUp', logInChecker, (req, res) => {
               next(err);
               return;
             }
+
+            req.session.user = entity.id;
+            req.session.name = req.body.first;
+            res.redirect('/hotelSearch');
           }); 
         });
       });
