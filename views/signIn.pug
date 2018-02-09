@@ -1,4 +1,4 @@
-extends base.pug
+extends baseRestricted.pug
 block content
   h3 Log In
   form(method="POST")
@@ -11,5 +11,5 @@ block content
     .form-group
     button.btn.btn-success(type="submit") Sign In
 
-  a(href=`/hotels/signUp`, class='btn btn-success btn-sm') CreateAccount
+  a(href=`/signUp`, class='btn btn-success btn-sm') CreateAccount
   p(class='text-danger' style="font-size:160%;") #{message}

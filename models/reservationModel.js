@@ -62,11 +62,9 @@ function create (data, cb) {
   update(null, data, cb);
 }
 
-function list (filters, cb) {
+function list (filter, cb) {
   const q = ds.createQuery([kind])
-    .filter('first', '=', filters[0])
-    .filter('last', '=', filters[1])
-    .filter('hotel', '=', filters[2])
+    .filter('user', '=', filter)
 
   ds.runQuery(q, (err, entities, nextQuery) => {
     if (err) {

@@ -10,13 +10,16 @@ block content
           form(action='makeReservation' method="POST")
             .form-group
               label(for="hotel")
-              input.form-control(type="text", name="hotel", id="hotel", value=hotel.id, required)
+              input.form-control(type="hidden", name="hotel", id="hotel", value=hotel.id, required)
             .form-group 
-              label(for="hotel")
-              input.form-control(type="text", name="hotel", id="hotel", value=start, required)
+              label(for="start")
+              input.form-control(type="hidden", name="start", id="hotel", value=start, required)
             .form-group
-              label(for="hotel")
-              input.form-control(type="text", name="hotel", id="hotel", value=end, required)
+              label(for="end")
+              input.form-control(type="hidden", name="end", id="end", value=end, required)
+            .form-group
+              label(for="name")
+              input.form-control(type="hidden", name="name", id="name", value=hotel.name, required)
             .form-group
             button.btn.btn-primary(type="submit") Book
 

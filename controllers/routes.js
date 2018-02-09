@@ -36,12 +36,20 @@ function getUserModel () {
   return require('./../models/userModel.js');
 }
 
-let sessionChecker = (req, res, next) => {
+const sessionChecker = (req, res, next) => {
     if (!req.session.user && !req.cookies.user_sid) {
-        res.redirect('/hotels/signIn');
+        res.redirect('/signIn');
     } else {
         next();
-    }    
+    }
+};
+
+const logInChecker = (req, res, next) => {
+    if (req.session.user && req.cookies.user_sid) {
+        res.redirect('/hotelSearch');
+    } else {
+        next();
+    }
 };
 
 router.use((req, res, next) => {
@@ -51,13 +59,13 @@ router.use((req, res, next) => {
     next();
 });
 
-router.get('/signIn', (req, res) => {
+router.get('/signIn', logInChecker, (req, res) => {
   res.render('signIn.pug', {
     user: {},
   });
 });
 
-router.post('/signIn', (req, res) => {
+router.post('/signIn', logInChecker, (req, res) => {
 
  
   getUserModel().listByUsername(req.body.email, (err, entities, cursor) => {
@@ -77,7 +85,7 @@ router.post('/signIn', (req, res) => {
         if (response === true) {
           req.session.user = entities[0].id;
           req.session.name = entities[0].first;
-          res.redirect('/hotels/hotelSearch')
+          res.redirect('/hotelSearch')
         } else {
           console.log("Incorrect Password");
           res.render('signIn.pug', {
@@ -92,13 +100,13 @@ router.post('/signIn', (req, res) => {
   });
 });
 
-router.get('/signUp', (req, res) => {
+router.get('/signUp', logInChecker, (req, res) => {
   res.render('signUp.pug', {
     user: {},
   });
 });
 
-router.post('/signUp', (req, res) => {
+router.post('/signUp', logInChecker, (req, res) => {
 
   getUserModel().listByUsername(req.body.email, (err, entities, cursor) => {
     if (err) {
@@ -148,8 +156,7 @@ router.post('/hotelSearch', sessionChecker, (req, res) => {
       next(err);
       return;
     }
-
-
+    console.log(entities.length);
     for (let i = 0; i < entities.length; i++) {
       let currentRoom = entities[i];
       let datesBooked = currentRoom.datesBooked;
@@ -167,10 +174,12 @@ router.post('/hotelSearch', sessionChecker, (req, res) => {
           });
 
           let overlap = false;
+          console.log(datesBooked);
           for (let j = 1; j < datesBooked.length; j++) {
             let dateOne = new Date (datesBooked[j - 1].split(",").pop());
             let dateTwo = new Date (datesBooked[j].split(",", 1));
             if (dateOne >= dateTwo) {
+              console.log(dateOne + " " + dateTwo);
               overlap = true;
             }
           }
@@ -209,9 +218,9 @@ router.get('/makeReservation', sessionChecker, (req, res) => {
   res.redirect('/hotelSearch');
 });
 
-//BROKEN
 router.post('/makeReservation', sessionChecker, (req, res) => {
   console.log(req.body.hotel);
+  let booked = false;
 
   getRoomModel().listByHotel(req.body.hotel, (err, entities, cursor) => {
     if (err) {
@@ -219,8 +228,6 @@ router.post('/makeReservation', sessionChecker, (req, res) => {
       return;
     }
 
-
-    console.log("HOLA"); 
     for (let i = 0; i < entities.length; i++) {
       let currentRoom = entities[i];
       let datesBooked = currentRoom.datesBooked;
@@ -231,9 +238,12 @@ router.post('/makeReservation', sessionChecker, (req, res) => {
             user: req.session.user,
             start: req.body.start,
             end: req.body.end, 
-            hotel: req.params.hotel,
+            hotel: req.body.hotel,
+            hotelName: req.body.name,
             room: currentRoom.number
           };
+
+          console.log(reservation);
     
           getReservationModel().create(reservation, (err, entity) => {
             if (err) {
@@ -249,6 +259,7 @@ router.post('/makeReservation', sessionChecker, (req, res) => {
             datesBooked: datesBooked,
             hotelName: currentRoom.hotelName,
             hotel: currentRoom.hotel,
+            city: currentRoom.city
           };
 
           getRoomModel().update(currentRoom.id, roomUpdate, function (err, savedData) {
@@ -257,6 +268,7 @@ router.post('/makeReservation', sessionChecker, (req, res) => {
               return;
             }
           });
+          booked = true;
           break;
       } else {
       
@@ -284,11 +296,11 @@ router.post('/makeReservation', sessionChecker, (req, res) => {
         if (overlap === false){
 
           let reservation = {
-            first: req.body.first,
-            last: req.body.last,
+            user: req.session.user,
             start: req.body.start,
             end: req.body.end, 
-            hotel: req.params.hotel,
+            hotel: req.body.hotel,
+            hotelName: req.body.name,
             room: currentRoom.number
           };
     
@@ -300,12 +312,12 @@ router.post('/makeReservation', sessionChecker, (req, res) => {
           });
 
 
-          datesBooked.push(req.body.start + "," + req.body.end);
           let roomUpdate = {
             number: currentRoom.number,
             datesBooked: datesBooked,
             hotelName: currentRoom.hotelName,
             hotel: currentRoom.hotel,
+            city: currentRoom.city
           };
 
           getRoomModel().update(currentRoom.id, roomUpdate, function (err, savedData) {
@@ -314,18 +326,41 @@ router.post('/makeReservation', sessionChecker, (req, res) => {
               return;
             }
           });
-          responseMessage = "Room succesfully booked!"
+          booked = true;
           break;
         } 
       }
     }
     
-    res.send("YO");
+    if (booked) {
+      res.redirect("/reservations");
+    } else {
+      res.render('hotelSearch.pug', {
+        reservation: {},
+        name: req.session.name,
+        message: "Requested room no longer available.",
+      });
+    }
   });
 });
 
+router.get('/reservations', sessionChecker, (req, res) => {
+  console.log(req.session.user);
+  getReservationModel().list(req.session.user, (err, entities, cursor) => {
+    console.log(entities);
+    res.render('reservations.pug', {
+      reservations: entities,
+    });
+  });  
+});
+
+router.get('/signOut', sessionChecker, (req, res) => {
+  res.clearCookie('user_sid');
+  res.redirect("/signIn");  
+});
+
 //OLD
-router.get('/', (req, res, next) => {
+router.get('/hotels', (req, res, next) => {
   console.log(req.body.hotel);
   getHotelModel().list(10, req.query.pageToken, (err, entities, cursor) => {
     if (err) {
@@ -389,189 +424,189 @@ router.get('/:hotel', (req, res, next) => {
   });
 });
 
-router.get('/:hotel/makeReservation', (req, res, next) => {
-  getHotelModel().read(req.params.hotel, (err, entity) => {
-    if (err) {
-      next(err);
-      return;
-    }
+// router.get('/:hotel/makeReservation', (req, res, next) => {
+//   getHotelModel().read(req.params.hotel, (err, entity) => {
+//     if (err) {
+//       next(err);
+//       return;
+//     }
 
-    res.render('makeReservation.pug', {
-    	reservation: {},
-    	hotel: entity.name
-  	});
-  });
-});
+//     res.render('makeReservation.pug', {
+//     	reservation: {},
+//     	hotel: entity.name
+//   	});
+//   });
+// });
 
-router.post('/:hotel/makeReservation', (req, res, next) => {
+// router.post('/:hotel/makeReservation', (req, res, next) => {
 
    
 
-  getRoomModel().list(req.params.hotel, (err, entities, cursor) => {
-    if (err) {
-      next(err);
-      return;
-    }
+//   getRoomModel().list(req.params.hotel, (err, entities, cursor) => {
+//     if (err) {
+//       next(err);
+//       return;
+//     }
 
-    let responseMessage = "";
+//     let responseMessage = "";
 
-    for (let i = 0; i < entities.length; i++) {
-    	let currentRoom = entities[i];
-    	let datesBooked = currentRoom.datesBooked;
+//     for (let i = 0; i < entities.length; i++) {
+//     	let currentRoom = entities[i];
+//     	let datesBooked = currentRoom.datesBooked;
 
-    	if (datesBooked.length == 0) {
+//     	if (datesBooked.length == 0) {
       	
-	        let reservation = {
-	          first: req.body.first,
-	  	      last: req.body.last,
-	  	      start: req.body.start,
-	  	      end: req.body.end, 
-	  	      hotel: req.params.hotel,
-	  	      room: currentRoom.number
-	        };
+// 	        let reservation = {
+// 	          first: req.body.first,
+// 	  	      last: req.body.last,
+// 	  	      start: req.body.start,
+// 	  	      end: req.body.end, 
+// 	  	      hotel: req.params.hotel,
+// 	  	      room: currentRoom.number
+// 	        };
 		
-	        getReservationModel().create(reservation, (err, entity) => {
-	          if (err) {
-	            next(err);
-	            return;
-	          }
-	        });
+// 	        getReservationModel().create(reservation, (err, entity) => {
+// 	          if (err) {
+// 	            next(err);
+// 	            return;
+// 	          }
+// 	        });
 
 
-	        datesBooked.push(req.body.start + "," + req.body.end);
-	        let roomUpdate = {
-	          number: currentRoom.number,
-	  	      datesBooked: datesBooked,
-	  	      hotelName: currentRoom.hotelName,
-	  	      hotel: currentRoom.hotel,
-	        };
+// 	        datesBooked.push(req.body.start + "," + req.body.end);
+// 	        let roomUpdate = {
+// 	          number: currentRoom.number,
+// 	  	      datesBooked: datesBooked,
+// 	  	      hotelName: currentRoom.hotelName,
+// 	  	      hotel: currentRoom.hotel,
+// 	        };
 
-	        getRoomModel().update(currentRoom.id, roomUpdate, function (err, savedData) {
-	          if (err) {
-	            next(err);
-	            return;
-	          }
-	        });
+// 	        getRoomModel().update(currentRoom.id, roomUpdate, function (err, savedData) {
+// 	          if (err) {
+// 	            next(err);
+// 	            return;
+// 	          }
+// 	        });
 
-	        responseMessage = "Room succesfully booked!"
-	        break;
-      } else {
+// 	        responseMessage = "Room succesfully booked!"
+// 	        break;
+//       } else {
     	
-    	//Add proposed date to array of dates booked, then sort
-      	datesBooked.push(req.body.start + "," + req.body.end)
-      	datesBooked.sort(function(a, b) {
-          a = new Date(a.split(",", 1));
-          b = new Date(b.split(",", 1));
-          if (a <= b) return -1;
-          if (a >= b) return 1;
-        });
+//     	//Add proposed date to array of dates booked, then sort
+//       	datesBooked.push(req.body.start + "," + req.body.end)
+//       	datesBooked.sort(function(a, b) {
+//           a = new Date(a.split(",", 1));
+//           b = new Date(b.split(",", 1));
+//           if (a <= b) return -1;
+//           if (a >= b) return 1;
+//         });
 
 
-      	//Check if there is overlap
-      	let overlap = false;
-        for (let j = 1; j < datesBooked.length; j++) {
-        	let dateOne = new Date (datesBooked[j - 1].split(",").pop());
-        	let dateTwo = new Date (datesBooked[j].split(",", 1));
-        	if (dateOne >= dateTwo) {
-        		overlap = true;
-        		responseMessage = "No rooms were available on those dates.";
-        	}
-        }
+//       	//Check if there is overlap
+//       	let overlap = false;
+//         for (let j = 1; j < datesBooked.length; j++) {
+//         	let dateOne = new Date (datesBooked[j - 1].split(",").pop());
+//         	let dateTwo = new Date (datesBooked[j].split(",", 1));
+//         	if (dateOne >= dateTwo) {
+//         		overlap = true;
+//         		responseMessage = "No rooms were available on those dates.";
+//         	}
+//         }
 
-        //if no overlap exist, book reservation
-        if (overlap === false){
+//         //if no overlap exist, book reservation
+//         if (overlap === false){
 
-        	let reservation = {
-	          first: req.body.first,
-	  	      last: req.body.last,
-	  	      start: req.body.start,
-	  	      end: req.body.end, 
-	  	      hotel: req.params.hotel,
-	  	      room: currentRoom.number
-	        };
+//         	let reservation = {
+// 	          first: req.body.first,
+// 	  	      last: req.body.last,
+// 	  	      start: req.body.start,
+// 	  	      end: req.body.end, 
+// 	  	      hotel: req.params.hotel,
+// 	  	      room: currentRoom.number
+// 	        };
 		
-	        getReservationModel().create(reservation, (err, entity) => {
-	          if (err) {
-	            next(err);
-	            return;
-	          }
-	        });
+// 	        getReservationModel().create(reservation, (err, entity) => {
+// 	          if (err) {
+// 	            next(err);
+// 	            return;
+// 	          }
+// 	        });
 
 
-	        datesBooked.push(req.body.start + "," + req.body.end);
-	        let roomUpdate = {
-	          number: currentRoom.number,
-	  	      datesBooked: datesBooked,
-	  	      hotelName: currentRoom.hotelName,
-	  	      hotel: currentRoom.hotel,
-	        };
+// 	        datesBooked.push(req.body.start + "," + req.body.end);
+// 	        let roomUpdate = {
+// 	          number: currentRoom.number,
+// 	  	      datesBooked: datesBooked,
+// 	  	      hotelName: currentRoom.hotelName,
+// 	  	      hotel: currentRoom.hotel,
+// 	        };
 
-	        getRoomModel().update(currentRoom.id, roomUpdate, function (err, savedData) {
-	          if (err) {
-	            next(err);
-	            return;
-	          }
-	        });
-	        responseMessage = "Room succesfully booked!"
-        	break;
-        } 
-      }
-    }
+// 	        getRoomModel().update(currentRoom.id, roomUpdate, function (err, savedData) {
+// 	          if (err) {
+// 	            next(err);
+// 	            return;
+// 	          }
+// 	        });
+// 	        responseMessage = "Room succesfully booked!"
+//         	break;
+//         } 
+//       }
+//     }
     
-    getHotelModel().read(req.params.hotel, (err, entity) => {
-      if (err) {
-        next(err);
-        return;
-      }
+//     getHotelModel().read(req.params.hotel, (err, entity) => {
+//       if (err) {
+//         next(err);
+//         return;
+//       }
 
-      res.render('hotel.pug', {
-        message: responseMessage,
-        hotel: entity
-      });
-    });
-  });
-});
+//       res.render('hotel.pug', {
+//         message: responseMessage,
+//         hotel: entity
+//       });
+//     });
+//   });
+// });
 
 
-router.get('/:hotel/manageReservations', (req, res, next) => {
-	getHotelModel().read(req.params.hotel, (err, entity) => {
-      if (err) {
-        next(err);
-        return;
-      }
-      res.render('manageReservations.pug', {
-        reservation: {},
-        hotel: entity.name
-  	  });
-  });
-});
+// router.get('/:hotel/manageReservations', (req, res, next) => {
+// 	getHotelModel().read(req.params.hotel, (err, entity) => {
+//       if (err) {
+//         next(err);
+//         return;
+//       }
+//       res.render('manageReservations.pug', {
+//         reservation: {},
+//         hotel: entity.name
+//   	  });
+//   });
+// });
 
-router.post('/:hotel/manageReservations', (req, res, next) => {
-  let filters = [req.body.first, req.body.last, req.params.hotel];
-  getReservationModel().list(filters, (err, entities, cursor) => {
-    if (err) {
-      next(err);
-      return;
-    }
+// router.post('/:hotel/manageReservations', (req, res, next) => {
+//   let filters = [req.body.first, req.body.last, req.params.hotel];
+//   getReservationModel().list(filters, (err, entities, cursor) => {
+//     if (err) {
+//       next(err);
+//       return;
+//     }
 
-    res.render('reservations.pug', {
-      first: req.body.first,
-      last: req.body.last,
-      reservations: entities,
-      nextPageToken: cursor
-    });
-  });
-});
+//     res.render('reservations.pug', {
+//       first: req.body.first,
+//       last: req.body.last,
+//       reservations: entities,
+//       nextPageToken: cursor
+//     });
+//   });
+// });
 
-router.get('/:hotel/manageReservations/:reservation/delete', (req, res, next) => {
-	getReservationModel().delete(req.params.reservation, (err, entity) => {
-      if (err) {
-        next(err);
-        return;
-      }
-      res.redirect(`${req.baseUrl}/${req.params.hotel}`)
-  });
-});
+// router.get('/:hotel/manageReservations/:reservation/delete', (req, res, next) => {
+// 	getReservationModel().delete(req.params.reservation, (err, entity) => {
+//       if (err) {
+//         next(err);
+//         return;
+//       }
+//       res.redirect(`${req.baseUrl}/${req.params.hotel}`)
+//   });
+// });
 
 
 module.exports = router

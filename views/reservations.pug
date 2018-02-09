@@ -1,15 +1,12 @@
 extends base.pug
 block content
-  h3 Reservations for #{first} #{last}
+  h3 Your Reservations
 
   ul
     each reservation in reservations
       .media
         .media-body
-          li= reservation.start + " " + reservation.end + " Room: " + reservation.room
-            a(href=`/hotels/${reservation.hotel}/manageReservations/${reservation.id}/delete`, class='btn btn-danger btn-sm')
-              i.glyphicon.glyphicon-trash
-                span  Cancel
+          li= reservation.hotelName + " from " + reservation.start + " to " + reservation.end + " Room: " + reservation.room
 
   if !reservations.length
-    h2 None found.
+    h2 No were reservations found.

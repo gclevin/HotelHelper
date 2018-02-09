@@ -11,7 +11,7 @@ app.use(express.static(path.join(__dirname, './public')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true })); 
 
-app.use('/hotels', require('./controllers/routes'));
+app.use('/', require('./controllers/routes'));
 
 //Delete
 function getModel () {
@@ -19,7 +19,7 @@ function getModel () {
 }
 
 app.get('/', (req, res) => {
-  res.redirect('/hotels');
+  res.redirect('/signIn');
 });
 
 app.listen(PORT, () => {
