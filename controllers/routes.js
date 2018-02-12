@@ -1,24 +1,12 @@
 const express = require('express')
 const router = express.Router()
 const path = require('path');
-const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
-const cookieParser = require('cookie-parser');
-const session = require('express-session');
+const bodyParser = require('body-parser');
 
 router.use(express.static(path.join(__dirname, './public')));
 router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: true })); 
-router.use(cookieParser());
-router.use(session({
-    key: 'user_sid',
-    secret: 'somerandonstuffs',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        expires: 600000
-    }
-}));
 
 function getHotelModel () {
 	return require('./../models/hotelModel.js');
@@ -36,57 +24,55 @@ function getUserModel () {
   return require('./../models/userModel.js');
 }
 
-const sessionChecker = (req, res, next) => {
-    if (!req.session.user && !req.cookies.user_sid) {
-        res.redirect('/signIn');
+//Redirect user if they are not logged in
+const loggedInCheck = (req, res, next) => {
+    if (!req.session.user) { 
+      res.redirect('signIn');
     } else {
-        next();
+      next();
     }
-};
+}
 
-const logInChecker = (req, res, next) => {
-    if (req.session.user && req.cookies.user_sid) {
-        res.redirect('/hotelSearch');
+//Redirect user if they are already logged in
+const loggedOutCheck = (req, res, next) => {
+    if (req.session.user) { 
+      res.redirect('hotelSearch');
+      return;
     } else {
-        next();
+      next();
     }
-};
+}
 
 router.use((req, res, next) => {
-    if (req.cookies.user_sid && !req.session.user) {
-        res.clearCookie('user_sid');        
-    }
     next();
 });
 
-router.get('/signIn', logInChecker, (req, res) => {
+router.get('/signIn', loggedOutCheck, (req, res) => {
   res.render('signIn.pug', {
     user: {},
   });
 });
 
-router.post('/signIn', logInChecker, (req, res) => {
+router.post('/signIn', loggedOutCheck, (req, res) => {
 
- 
   getUserModel().listByUsername(req.body.email, (err, entities, cursor) => {
     if (err) {
       next(err);
       return;
     }
 
-    if (entities.length === 0) {
-      console.log("Account with that username does not exist.");
+    if (entities.length === 0) { //Username does not exist
       res.render('signIn.pug', {
         user: {},
         message: "Account with that username does not exist.",
       });
     } else {
       bcrypt.compare(req.body.password, entities[0].password, function(err, response) {
-        if (response === true) {
+        if (response === true) { //Username and password correct
           req.session.user = entities[0].id;
           req.session.name = entities[0].first;
-          res.redirect('/hotelSearch');
-        } else {
+          res.redirect('hotelSearch');
+        } else { //Username exists, but inputted password is incorrect
           console.log("Incorrect Password");
           res.render('signIn.pug', {
             user: {},
@@ -95,18 +81,16 @@ router.post('/signIn', logInChecker, (req, res) => {
         }
       });
     }
-
-
   });
 });
 
-router.get('/signUp', logInChecker, (req, res) => {
+router.get('/signUp', loggedOutCheck, (req, res) => {
   res.render('signUp.pug', {
     user: {},
   });
 });
 
-router.post('/signUp', logInChecker, (req, res) => {
+router.post('/signUp', loggedOutCheck, (req, res) => {
 
   getUserModel().listByUsername(req.body.email, (err, entities, cursor) => {
     if (err) {
@@ -114,12 +98,12 @@ router.post('/signUp', logInChecker, (req, res) => {
       return;
     }
 
-    if (entities.length > 0) {
+    if (entities.length > 0) { //Username already taken
       res.render('signUp.pug', {
         user: {},
         message: "Account with that email already exists."
       });
-    } else {
+    } else { //Create new account, slating and hashing the password
       bcrypt.genSalt(10, function(err, salt) {
         bcrypt.hash(req.body.password, salt, function(err, hash) {
           let newUser = {
@@ -144,31 +128,33 @@ router.post('/signUp', logInChecker, (req, res) => {
   });
 });
 
-router.get('/hotelSearch', sessionChecker, (req, res) => {
+router.get('/hotelSearch', loggedInCheck, (req, res) => {
     res.render('hotelSearch.pug', {
       reservation: {},
       name: req.session.name,
     });
 });
 
-router.post('/hotelSearch', sessionChecker, (req, res) => {
+router.post('/hotelSearch', loggedInCheck, (req, res) => {
 
-  let availableHotelIds = new Set();
+
+  let availableHotelIds = new Set(); //Holds the IDs of available hotels
 
   getRoomModel().list(req.body.city, (err, entities, cursor) => {
     if (err) {
       next(err);
       return;
     }
-    console.log(entities.length);
+
     for (let i = 0; i < entities.length; i++) {
       let currentRoom = entities[i];
       let datesBooked = currentRoom.datesBooked;
 
-      if (!(availableHotelIds.has(currentRoom.hotel))) {
-        if (datesBooked.length == 0) {
+      if (!(availableHotelIds.has(currentRoom.hotel))) { //if current room's hotel doesn't exist in our set
+        if (datesBooked.length == 0) { //room availability completely open
           availableHotelIds.add(currentRoom.hotel);
-        } else {
+        } else { //room is booked on certain days
+          //sort dates booked
           datesBooked.push(req.body.start + "," + req.body.end)
           datesBooked.sort(function(a, b) {
             a = new Date(a.split(",", 1));
@@ -177,13 +163,12 @@ router.post('/hotelSearch', sessionChecker, (req, res) => {
             if (a >= b) return 1;
           });
 
+          //Check for overlap based on sorted list
           let overlap = false;
-          console.log(datesBooked);
           for (let j = 1; j < datesBooked.length; j++) {
             let dateOne = new Date (datesBooked[j - 1].split(",").pop());
             let dateTwo = new Date (datesBooked[j].split(",", 1));
             if (dateOne >= dateTwo) {
-              console.log(dateOne + " " + dateTwo);
               overlap = true;
             }
           }
@@ -202,6 +187,7 @@ router.post('/hotelSearch', sessionChecker, (req, res) => {
         return;
       }
 
+      //Get hotel entities based on IDs in our set
       let availableHotels = [];
       for (let k = 0; k < hotelEntities.length; k++) {
         if (availableHotelIds.has(hotelEntities[k].id)) {
@@ -218,12 +204,12 @@ router.post('/hotelSearch', sessionChecker, (req, res) => {
   });  
 });
 
-router.get('/makeReservation', sessionChecker, (req, res) => {
+router.get('/makeReservation', loggedInCheck, (req, res) => {
   res.redirect('/hotelSearch');
 });
 
-router.post('/makeReservation', sessionChecker, (req, res) => {
-  console.log(req.body.hotel);
+router.post('/makeReservation', loggedInCheck, (req, res) => {
+
   let booked = false;
 
   getRoomModel().listByHotel(req.body.hotel, (err, entities, cursor) => {
@@ -236,7 +222,7 @@ router.post('/makeReservation', sessionChecker, (req, res) => {
       let currentRoom = entities[i];
       let datesBooked = currentRoom.datesBooked;
 
-      if (datesBooked.length == 0) {
+      if (datesBooked.length == 0) { //room availability completely open
         
           let reservation = {
             user: req.session.user,
@@ -246,8 +232,6 @@ router.post('/makeReservation', sessionChecker, (req, res) => {
             hotelName: req.body.name,
             room: currentRoom.number
           };
-
-          console.log(reservation);
     
           getReservationModel().create(reservation, (err, entity) => {
             if (err) {
@@ -256,7 +240,7 @@ router.post('/makeReservation', sessionChecker, (req, res) => {
             }
           });
 
-
+          //Update room entity to reflect newly made resrevation
           datesBooked.push(req.body.start + "," + req.body.end);
           let roomUpdate = {
             number: currentRoom.number,
@@ -348,24 +332,21 @@ router.post('/makeReservation', sessionChecker, (req, res) => {
   });
 });
 
-router.get('/reservations', sessionChecker, (req, res) => {
-  console.log(req.session.user);
+router.get('/reservations', loggedInCheck, (req, res) => {
+
   getReservationModel().list(req.session.user, (err, entities, cursor) => {
-    console.log(entities);
     res.render('reservations.pug', {
       reservations: entities,
     });
   });  
 });
 
-router.get('/signOut', sessionChecker, (req, res) => {
-  res.clearCookie('user_sid');
+router.get('/signOut', (req, res) => {
+  req.session.destroy();
   res.redirect("/signIn");  
 });
 
-//OLD
 router.get('/hotels', (req, res, next) => {
-  console.log(req.body.hotel);
   getHotelModel().list(10, req.query.pageToken, (err, entities, cursor) => {
     if (err) {
       next(err);
@@ -427,190 +408,5 @@ router.get('/:hotel', (req, res, next) => {
     });
   });
 });
-
-// router.get('/:hotel/makeReservation', (req, res, next) => {
-//   getHotelModel().read(req.params.hotel, (err, entity) => {
-//     if (err) {
-//       next(err);
-//       return;
-//     }
-
-//     res.render('makeReservation.pug', {
-//     	reservation: {},
-//     	hotel: entity.name
-//   	});
-//   });
-// });
-
-// router.post('/:hotel/makeReservation', (req, res, next) => {
-
-   
-
-//   getRoomModel().list(req.params.hotel, (err, entities, cursor) => {
-//     if (err) {
-//       next(err);
-//       return;
-//     }
-
-//     let responseMessage = "";
-
-//     for (let i = 0; i < entities.length; i++) {
-//     	let currentRoom = entities[i];
-//     	let datesBooked = currentRoom.datesBooked;
-
-//     	if (datesBooked.length == 0) {
-      	
-// 	        let reservation = {
-// 	          first: req.body.first,
-// 	  	      last: req.body.last,
-// 	  	      start: req.body.start,
-// 	  	      end: req.body.end, 
-// 	  	      hotel: req.params.hotel,
-// 	  	      room: currentRoom.number
-// 	        };
-		
-// 	        getReservationModel().create(reservation, (err, entity) => {
-// 	          if (err) {
-// 	            next(err);
-// 	            return;
-// 	          }
-// 	        });
-
-
-// 	        datesBooked.push(req.body.start + "," + req.body.end);
-// 	        let roomUpdate = {
-// 	          number: currentRoom.number,
-// 	  	      datesBooked: datesBooked,
-// 	  	      hotelName: currentRoom.hotelName,
-// 	  	      hotel: currentRoom.hotel,
-// 	        };
-
-// 	        getRoomModel().update(currentRoom.id, roomUpdate, function (err, savedData) {
-// 	          if (err) {
-// 	            next(err);
-// 	            return;
-// 	          }
-// 	        });
-
-// 	        responseMessage = "Room succesfully booked!"
-// 	        break;
-//       } else {
-    	
-//     	//Add proposed date to array of dates booked, then sort
-//       	datesBooked.push(req.body.start + "," + req.body.end)
-//       	datesBooked.sort(function(a, b) {
-//           a = new Date(a.split(",", 1));
-//           b = new Date(b.split(",", 1));
-//           if (a <= b) return -1;
-//           if (a >= b) return 1;
-//         });
-
-
-//       	//Check if there is overlap
-//       	let overlap = false;
-//         for (let j = 1; j < datesBooked.length; j++) {
-//         	let dateOne = new Date (datesBooked[j - 1].split(",").pop());
-//         	let dateTwo = new Date (datesBooked[j].split(",", 1));
-//         	if (dateOne >= dateTwo) {
-//         		overlap = true;
-//         		responseMessage = "No rooms were available on those dates.";
-//         	}
-//         }
-
-//         //if no overlap exist, book reservation
-//         if (overlap === false){
-
-//         	let reservation = {
-// 	          first: req.body.first,
-// 	  	      last: req.body.last,
-// 	  	      start: req.body.start,
-// 	  	      end: req.body.end, 
-// 	  	      hotel: req.params.hotel,
-// 	  	      room: currentRoom.number
-// 	        };
-		
-// 	        getReservationModel().create(reservation, (err, entity) => {
-// 	          if (err) {
-// 	            next(err);
-// 	            return;
-// 	          }
-// 	        });
-
-
-// 	        datesBooked.push(req.body.start + "," + req.body.end);
-// 	        let roomUpdate = {
-// 	          number: currentRoom.number,
-// 	  	      datesBooked: datesBooked,
-// 	  	      hotelName: currentRoom.hotelName,
-// 	  	      hotel: currentRoom.hotel,
-// 	        };
-
-// 	        getRoomModel().update(currentRoom.id, roomUpdate, function (err, savedData) {
-// 	          if (err) {
-// 	            next(err);
-// 	            return;
-// 	          }
-// 	        });
-// 	        responseMessage = "Room succesfully booked!"
-//         	break;
-//         } 
-//       }
-//     }
-    
-//     getHotelModel().read(req.params.hotel, (err, entity) => {
-//       if (err) {
-//         next(err);
-//         return;
-//       }
-
-//       res.render('hotel.pug', {
-//         message: responseMessage,
-//         hotel: entity
-//       });
-//     });
-//   });
-// });
-
-
-// router.get('/:hotel/manageReservations', (req, res, next) => {
-// 	getHotelModel().read(req.params.hotel, (err, entity) => {
-//       if (err) {
-//         next(err);
-//         return;
-//       }
-//       res.render('manageReservations.pug', {
-//         reservation: {},
-//         hotel: entity.name
-//   	  });
-//   });
-// });
-
-// router.post('/:hotel/manageReservations', (req, res, next) => {
-//   let filters = [req.body.first, req.body.last, req.params.hotel];
-//   getReservationModel().list(filters, (err, entities, cursor) => {
-//     if (err) {
-//       next(err);
-//       return;
-//     }
-
-//     res.render('reservations.pug', {
-//       first: req.body.first,
-//       last: req.body.last,
-//       reservations: entities,
-//       nextPageToken: cursor
-//     });
-//   });
-// });
-
-// router.get('/:hotel/manageReservations/:reservation/delete', (req, res, next) => {
-// 	getReservationModel().delete(req.params.reservation, (err, entity) => {
-//       if (err) {
-//         next(err);
-//         return;
-//       }
-//       res.redirect(`${req.baseUrl}/${req.params.hotel}`)
-//   });
-// });
-
 
 module.exports = router

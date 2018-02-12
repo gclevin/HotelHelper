@@ -9,12 +9,4 @@ block content
       h4 #{hotel.city}, #{hotel.state} #{hotel.zip}
       h5 Rooms:  #{hotel.rooms}
 
-  .btn-group
-    a(href=`/hotels/${hotel.id}/makeReservation`, class='btn btn-primary btn-sm')
-      i.glyphicon.glyphicon-plus
-      span  Make Reservation
-    a(href=`/hotels/${hotel.id}/manageReservations`, class='btn btn-success btn-sm')
-      i.glyphicon.glyphicon-search
-      span  Manage Reservations
-
   p(class='text-danger' style="font-size:160%;") #{message}
